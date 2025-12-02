@@ -23,7 +23,7 @@ sam = sam_model_registry["vit_h"](checkpoint="sam_vit_h_4b8939.pth")
 sam.to(device=device)
 predictor = SamPredictor(sam)
 
-# 이미지 로드
+# 이미지 로드d
 
 INPUT_DIR = "태량"
 input_images_path = glob(os.path.join(INPUT_DIR, "*.jpg"))
