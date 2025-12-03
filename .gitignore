@@ -44,6 +44,15 @@ dataset/
 *.pth
 *.h5
 *.onnx
+*.pyc
 
 .env
 secrets.json
+
+images/
+masks/
+
+database.db
+database.db-journal
+sparse/
+dense/
