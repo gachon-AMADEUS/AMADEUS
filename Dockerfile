@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --upgrade pip setuptools wheel \
  && pip install \
     torch==2.0.1+cu118 \
-    torchvision==0.15.2+cu118 \
+    torchvision==0.15.2+cu117 \
     torchaudio==2.0.2 \
     --index-url https://download.pytorch.org/whl/cu118
 
