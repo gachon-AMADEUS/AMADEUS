@@ -1,58 +1,108 @@
-OUR_FOOT(3)/result_colmap/
-OUR_FOOT(3)/output/
-OUR_FOOT(3)/dataset/
-
-CUP_TEST(1)/cup_clean/
-CUP_TEST(1)/cup_frames/
-CUP_TEST(1)/cup_mask/
-CUP_TEST(1)/runs/
-CUP_TEST(1)/test/
-CUP_TEST(1)/train/
-CUP_TEST(1)/valid/
-*.jpg*
-*.png*
-*.pt
-*.yaml
-*.zip
-*.mp4
-*.pth
-*_jpg*
-!*.py
-!*.ipynb
-!OUR_FOOT(3)/in_windows/*.py
-!OUR_FOOT(3)/in_windows/*.ipynb
-
-venv/
+# ===================================
+# 1. 파이썬 & 시스템 기본 설정 (필수)
+# ===================================
 __pycache__/
 *.py[cod]
-
-venv/
-env/
-ai_env/
-.venv/
-
-.vscode/
-
-.ipynb_checkpoints/
-
+*$py.class
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
+.ipynb_checkpoints/
+.env
+secrets.json
 
-data/
-dataset/
+# 가상환경 폴더 (중복 통합)
+venv/
+.venv/
+env/
+ai_env/
+
+# ===================================
+# 2. 대용량 미디어 & 모델 파일 (Global)
+# ===================================
+# 이미지/영상
+*.jpg
+*.jpeg
+*.png
+*.mp4
+*.avi
+*.mov
+
+# AI 모델 가중치 (용량 큼)
 *.pt
 *.pth
 *.h5
 *.onnx
-*.pyc
+*.ckpt
+*.safetensors
 
-.env
-secrets.json
+# 압축 파일
+*.zip
+*.tar
+*.gz
 
-images/
-masks/
+# 3D 관련 파일 (소스코드 외 3D 데이터)
+*.ply
+*.obj
+*.stl
+*.glb
 
+# ===================================
+# 3. 프로젝트별 데이터/결과 폴더 (AMADEUS)
+# ===================================
+# AMADEUS 파이프라인 생성 폴더
+data/
+colmap/
+colmap_work/
+sugar_ready/
+output/
+
+# COLMAP 데이터베이스 및 결과
 database.db
 database.db-journal
 sparse/
 dense/
+
+# YOLO/AI 학습 로그 폴더
+runs/
+wandb/
+
+# ===================================
+# 4. 기존 작업 폴더 (사용자 지정)
+# ===================================
+# 특정 데이터셋 폴더 통째로 무시
+OUR_FOOT(3)/result_colmap/
+OUR_FOOT(3)/output/
+OUR_FOOT(3)/dataset/
+
+# 컵 테스트 데이터 통째로 무시
+CUP_TEST(1)/
+
+# 일반적인 데이터셋 이름들
+dataset/
+images/
+masks/
+
+# ===================================
+# 5. 예외 처리 (이 파일들은 꼭 올려야 함!)
+# ===================================
+# assets 폴더 안의 이미지(README용)는 허용
+!assets/
+
+# 파이썬 코드 및 노트북은 무조건 허용 (안전장치)
+!*.py
+!*.ipynb
+
+# 윈도우 전용 코드 폴더가 있다면 허용
+!OUR_FOOT(3)/in_windows/*.py
+!OUR_FOOT(3)/in_windows/*.ipynb
+
+# ===========================
+# AI 모델 가중치
+# ===========================
+models/
+*.pt
+*.pth
+*.ckpt
+*.safetensors

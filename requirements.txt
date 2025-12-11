@@ -1,70 +1,25 @@
-asttokens
-certifi==2025.11.12
-charset-normalizer==3.4.4
-colorama
-comm
-contourpy==1.3.2
-cycler==0.12.1
-debugpy
-decorator
-et_xmlfile==2.0.0
-executing
-filelock==3.20.0
-fonttools==4.58.4
-fsspec==2025.10.0
-idna==3.11
-importlib_metadata
-ipykernel
-ipython
-ipython_pygments_lexers
-jedi
-Jinja2==3.1.6
-jupyter_client
-jupyter_core
-kiwisolver==1.4.8
-MarkupSafe==3.0.3
-matplotlib==3.10.3
-matplotlib-inline
-mpmath==1.3.0
-nest_asyncio
-networkx==3.6
-numpy==2.2.6
-opencv-python==4.12.0.88
-openpyxl==3.1.5
-packaging
-panda==0.3.1
-pandas==2.3.1
-parso
-pillow==12.0.0
-platformdirs
-polars==1.35.2
-polars-runtime-32==1.35.2
-prompt_toolkit
-psutil
-pure_eval
-Pygments
-pyparsing==3.2.3
-python-dateutil
-pytz==2025.2
-pywin32
-PyYAML==6.0.3
-pyzmq
-requests==2.32.5
-scipy==1.16.3
-segment_anything @ git+https://github.com/facebookresearch/segment-anything.git@dca509fe793f601edb92606367a655c15ac00fdf
-six
-stack_data
-sympy==1.14.0
-# consider gpu enviornment
-# torch==2.7.0+cu128
-# torchaudio==2.7.0+cu128
-# torchvision==0.22.0+cu128
-tornado
-traitlets
-typing_extensions
-tzdata==2025.2
-ultralytics==8.3.234
-ultralytics-thop==2.0.18
-urllib3==2.5.0
-wcwidth
-zipp
+# --- 핵심 연산 및 이미지 처리 ---
+numpy<2.0
+scipy
+opencv-python-headless
+pillow
+pandas
+pyyaml
+
+# --- 3D 처리 핵심 라이브러리 ---
+plyfile
+open3d
+pymeshlab
+trimesh
+
+# --- AI 모델 (YOLO & SAM) ---
+ultralytics
+segment_anything
+
+# --- 유틸리티 ---
+tqdm
+requests
+roboflow
+
+# 주의: torch, torchvision, pytorch3d, simple-knn은 
+# Dockerfile과 실행 스크립트에서 따로 설치하므로 여기에 적지 마세요!
