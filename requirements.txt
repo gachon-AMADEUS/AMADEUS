@@ -5,6 +5,7 @@ opencv-python-headless
 pillow
 pandas
 pyyaml
+matplotlib<3.9
 
 # --- 3D 처리 핵심 라이브러리 ---
 plyfile
@@ -20,6 +21,8 @@ segment_anything
 tqdm
 requests
 roboflow
+joblib
+tensorboard<2.17
 
 # 주의: torch, torchvision, pytorch3d, simple-knn은 
 # Dockerfile과 실행 스크립트에서 따로 설치하므로 여기에 적지 마세요!
