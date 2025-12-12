@@ -5,6 +5,7 @@ opencv-python-headless
 pillow
 pandas
 pyyaml
+scikit-image
 matplotlib<3.9
 
 # --- 3D 처리 핵심 라이브러리 ---

@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     colmap \
     libssl-dev \
+    nano \
     && rm -rf /var/lib/apt/lists/*
 
 # 4. Miniconda 설치
@@ -112,8 +113,16 @@ RUN git clone --recursive https://github.com/Anttwo/SuGaR.git /app/SuGaR
 
 # (필요시 SuGaR 내부의 submodule도 pip install . 수행)
 
-# 10. 최종 작업 디렉토리 설정
-# WORKDIR /app
+# 10. 최종 assets 가져오기 (추후 수정)
+WORKDIR /app/assets
+COPY assets/태량1.mp4 .
+COPY assets/best.pt .
+COPY assets/sam_vit_h_4b8939.pth .
+
+WORKDIR /app
+COPY frame_preprocessing.py .
+COPY yolo_sam_process2.py .
+COPY pipeline_before_colmap.py .
 
 # 컨테이너 실행 시 기본적으로 conda 환경 활성화
 RUN echo "source /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
