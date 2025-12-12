@@ -19,10 +19,10 @@ RUN apt-get update && apt-get install -y \
 # 이 버전이 PyTorch3D와 가장 호환성이 좋습니다.
 RUN pip install --upgrade pip setuptools wheel \
  && pip install \
-    torch==2.0.1+cu118 \
+    torch==2.0.1+cu117 \
     torchvision==0.15.2+cu117 \
     torchaudio==2.0.2 \
-    --index-url https://download.pytorch.org/whl/cu118
+    --index-url https://download.pytorch.org/whl/cu117
 
 # 5. ★ PyTorch3D 설치 (여기가 핵심) ★
 # (1) 필수 의존성을 먼저 설치합니다. (이게 없으면 Wheel 설치가 실패함)
