@@ -87,7 +87,7 @@ This stage lays the foundation for 3D reconstruction by estimating the camera's 
 - Goal: To calculate the relative camera poses and internal parameters (Intrinsic) for all captured images and generate a Sparse Point Cloud of the foot.
 - Key Technologies:
   - Feature Extraction: Extracts key feature points from the images.
-  - Exhaustive Matching: Compares all ~300 images 1:1 to minimize matching errors (Ensuring 3D data connectivity).
+  - Sequential Matching: Matching by comparing only adjacent frames (e.g., frame_001 and frame_002) according to the order in which images are shot
   - Bundle Adjustment: Optimizes the positions of all cameras and feature points.
 - Operation:
   1. raw_images are used as input, as background information is needed for reliable pose estimation.
