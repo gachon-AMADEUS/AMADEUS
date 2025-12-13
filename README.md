@@ -17,6 +17,11 @@ The ultimate goal of this project is to generate highly accurate 3D models, scal
 
 
 
+
+
+
+ 
+
 ## 📂 Overall Layout
 ```
 AMADEUS/
@@ -134,9 +139,9 @@ This stage transforms and refines the 3DGS results into a solid form that is rea
   - **Solution**:
     1. Ensure you used the provided `Dockerfile` (It uses `--no-build-isolation` flag)
     2. If running manually, go to `gaussian-splatting/submodules/diff-gaussian-rasterization` and run:
-      ```bash
+       ```bash
        pip install . --no-build-isolation
-      ```
+        ```
 - `qt.qpa.plugin: Could not load the Qt platform plugin "xcb"`
   - **Cause**: `open3d` or `pymeshlab` tries to open a window on a server/container without a monitor.
   - **Solution**: Always use `xvfb-run` when executing the pipeline.
