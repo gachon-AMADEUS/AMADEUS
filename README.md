@@ -4,41 +4,35 @@ The AMADEUS project is a 3D scanning and modeling pipeline that uses smartphone 
 The ultimate goal of this project is to generate highly accurate 3D models, scale them to real-world dimensions (Real-world Scaling), and then use the models for 3D printing a physical shoe last
 
 ## 📊 Current Progress
-| Pipeline | Status |
-| --- | --- |
-| Data preprocessing (YOLO + SAM) |✅| 
-| 3D Reconstruction (COLMAP SfM) |✅| 
-| 3DGS Training (Gaussian Splatting) |✅| 
-| Mesh Extraction (SuGaR) |✅|
-| Mesh Cleaning & Healing |✅|
-|Resolution Mismatch Fix|🚧|
-|Real-world Scaling (mm conversion)|⬜|
-|Shoe Last Engineering (Modeling)|⬜|
-|3D Printing & Validation|⬜|
+| Pipeline | Status | Note |
+| --- | --- | --- |
+| Data preprocessing (YOLO + SAM) |✅|Auto-masking foot region|
+| 3D Reconstruction (COLMAP SfM) |✅|Sparse point cloud generation|
+| 3DGS Training (Gaussian Splatting) |✅|sh_degree=0, 7k iters|
+| Mesh Extraction (SuGaR) |✅|Pipeline Integration Complete|
+| Mesh Cleaning & Healing |✅|Automated Cutting & Hole Filling|
+|Real-world Scaling (mm conversion)|⬜|Next Step|
+|Shoe Last Engineering (Modeling)|⬜|To-do|
+|3D Printing & Validation|⬜|To-do|
 
 
-
-
-
-
- 
 
 ## 📂 Overall Layout
 ```
 AMADEUS/
 ├── data/
-│   ├── raw_images/       # (Input) Original foot photos (360-degree capture)
-│   └── masked_images/    # (Generated]) Background-removed data for training
-├── models/               # AI model files (YOLOv11, SAM ViT-H)
+│   ├── raw_images/       # (Input) Original foot photos
+│   └── masked_images/    # (Generated) Background-removed data
+├── models/               # YOLOv11, SAM ViT-H models
 ├── src/
-│   ├── preprocessing/    # Preprocessing scripts (Auto Segmentation)
-│   ├── postprocessing/   # Post-processing scripts (Mesh Cutting, Healing)
-│   └── utils/            # Utilities
-├── colmap_work/          # (Work) COLMAP intermediate files (Sparse Model)
-├── output/               # (Output) Final .obj Mesh file
-├── Dockerfile            # Optimized Docker environment setup
-├── requirements.txt      # Python dependencies
-└── run_pipeline.sh       # Full pipeline execution script
+│   ├── preprocessing/    # Segmentation scripts
+│   └── postprocessing/   # Mesh cutting & Healing scripts
+├── SuGaR/                # (Submodule) Patched SuGaR implementation
+├── gaussian-splatting/   # (Submodule) Patched Vanilla 3DGS
+├── colmap_work/          # (Work) Intermediate COLMAP files
+├── output/               # (Output) Final .obj Mesh & Checkpoints
+├── Dockerfile            # Optimized Environment
+└── run_pipeline.sh       # ★ Main Execution Script (Full Pipeline)
 ```
 
 ## ⚙️ Prerequisites 
@@ -54,24 +48,38 @@ Hardware: Hardware: NVIDIA GPU (RTX 4060 8GB or higher recommended)
 
 
 ## 🚀 Install & Start
-#### 1. Docker Build
+This repository **includes pre-patched source codes** for `SuGaR` and `3DGS`.
+You do **NOT** need to download submodules or fix the code manually.
+
+#### 1. Clone Repository
+Just clone this repository. It contains all the necessary custom fixes.
+
 ```bash
-# run in Dockerfile path
+# Clone the repository (No --recursive needed)
+git clone [https://github.com/gachon-AMADEUS/Jjajangmyeon.git](https://github.com/gachon-AMADEUS/Jjajangmyeon.git) AMADEUS
+
+# Move to project directory
+cd AMADEUS
+```
+#### 2. Build Docker Image
+```bash
+# Build the image named 'amadeus'
 docker build -t amadeus .
 ```
-
-#### 2. Docker Run
-```Powershell
+#### 3. Run Container
+```bash
+# Run with GPU support
 docker run --gpus all -it --rm -v ${PWD}:/app amadeus
 ```
-#### 3. Run Pipeline
+#### 4. Run Pipeline
 ```bash
-# Grant Execution Permissions
+# 1. Grant execution permission
 chmod +x run_pipeline.sh
 
-# Pipeline Operation with Virtual Display (xvfb)
+# 2. Run the full pipeline
 xvfb-run -a ./run_pipeline.sh
 ```
+
 ## 🔄 Pipeline (Current)
 #### 1. Preprocessing (Step 1)
 This stage is the most crucial initial task, determining the accuracy of 3D reconstruction and the efficiency of training.
@@ -120,12 +128,30 @@ This stage transforms and refines the 3DGS results into a solid form that is rea
 - Output: output/final_foot_mesh.obj (Refined mesh ready for 3D printing)
 
 ## ⚠️ Troubleshooting (Known Issues)
-#### 1. Resolution Mismatch Error
-- Symptom: Error occurs in Step 3 due to coordinate system conflict.
-- Cause: COLMAP uses the full resolution of the original image, but the input masked image may have been resized during Step 1.
-- Solution (To-Do): Modify segment_foot.py to ensure the masked image is saved with the same resolution as the original image.
+#### 1. Installation & Environment
+- `ModuleNotFoundError: No module named 'diff_gaussian_rasterization'`
+  - **Cause**: The submodule was not compiled correctly during Docker build, or pip install -e . failed to link the C++ binaries.
+  - **Solution**:
+    1. Ensure you used the provided `Dockerfile` (It uses `--no-build-isolation` flag)
+    2. If running manually, go to `gaussian-splatting/submodules/diff-gaussian-rasterization` and run:
+      ```bash
+       pip install . --no-build-isolation
+      ```
+- `qt.qpa.plugin: Could not load the Qt platform plugin "xcb"`
+  - **Cause**: `open3d` or `pymeshlab` tries to open a window on a server/container without a monitor.
+  - **Solution**: Always use `xvfb-run` when executing the pipeline.
+    ``` bash
+    xvfb-run -a ./run_pipeline.sh
+    ```
+#### 2. Runtime Errors (SuGaR + 3DGS)
+- `AssertionError: At the beginning of SuGaR training, sh_degree is 0...`
+   -  **Cause**: Vanilla 3DGS was trained with `sh_degree=0` (for speed), but default SuGaR expects `sh_degree=3`.
+  - **Fix (Applied)**: We patched `SuGaR/sugar_scene/gs_model.py` to force `GaussianModel(0)`. Do not revert this code.
 
-#### 2. Auto Align Failed
-- Symptom: auto_align_colmap.py throws a RANSAC points not enough error.
-- Cause: Insufficient density of the initial point cloud to reliably detect the ground plane.
-- Mitigation: The pipeline is configured to ignore this error and proceed (|| true), but the mesh may be slightly tilted.
+- `ValueError: too many values to unpack (expected 2)`
+  - **Cause**: Mismatch between the latest `diff-gaussian-rasterization` (returns 3+ values) and old SuGaR code (expects 2).
+  -  **Fix (Applied)**: Code updated to `rendered_image, radii, _ = rasterizer(...)`.
+
+- `RuntimeError: min(): Expected reduction dim to be specified...`
+  - **Cause**: Occurs when `sh_degree=0`. The `_sh_coordinates_rest` tensor is empty, but the logger tries to calculate its min/max stats.
+  - **Fix (Applied)**: Added a safety check if `tensor.numel() > 0`: in `coarse_density_and_dn_consistency.py`.
