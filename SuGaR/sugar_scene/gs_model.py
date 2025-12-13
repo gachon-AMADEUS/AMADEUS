@@ -157,7 +157,8 @@ class GaussianSplattingWrapper:
         # ns_cameras = convert_camera_from_gs_to_nerfstudio(self.cam_list)
         # self.training_cameras = NeRFCameras.from_ns_cameras(ns_cameras)
         self.training_cameras = CamerasWrapper(self.cam_list)
-            
+
+        # sh_degree 0으로 하기 위한 수정    
         self.gaussians = GaussianModel(0)
         self.gaussians.load_ply(
             os.path.join(
