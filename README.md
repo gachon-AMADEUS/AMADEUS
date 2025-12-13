@@ -176,6 +176,11 @@ The final engineering step to make the mesh 3D-printable.
   - **Cause**: Occurs when `sh_degree=0`. The `_sh_coordinates_rest` tensor is empty, but the logger tries to calculate its min/max stats.
   - **Fix (Applied)**: Added a safety check if `tensor.numel() > 0`: in `coarse_density_and_dn_consistency.py`.
 
+#### 3. Output Quality Issues
+- Mesh Result is "Flat" or "Low Quality"
+  - **Cause**: You might have left the testing flags (`-f 50`, `--postprocess_iterations 50`) in `run_pipeline.sh`.
+  - **Solution**: Open `run_pipeline.sh` and remove those flags to enable full training (7k~15k iterations).
+
 ## 📚 References & Acknowledgments
 
 #### 1. Core Algorithms
