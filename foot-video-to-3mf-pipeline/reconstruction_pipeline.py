@@ -108,6 +108,20 @@ def _is_global_ba_image_count_failure(exc: Exception) -> bool:
     )
 
 
+def _replace_tree(source: Path, target: Path) -> None:
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(source, target)
+
+
+def _find_sparse_model_dir(root: Path) -> Path:
+    candidates = [root / "sparse" / "0", root / "sparse"]
+    for candidate in candidates:
+        if all((candidate / name).exists() for name in ("cameras.bin", "images.bin", "points3D.bin")):
+            return candidate
+    raise FileNotFoundError(f"Undistorted COLMAP sparse model not found under: {root}")
+
+
 def explain_local_gpu_blockers(docker_bin: str = "docker") -> list[str]:
     blockers: list[str] = []
     if shutil.which(docker_bin) is None:
@@ -271,6 +285,28 @@ def run_colmap_sfm(
     sparse0 = scene_path / "sparse" / "0"
     for required in ("cameras.bin", "images.bin", "points3D.bin"):
         _require_file(sparse0 / required, f"COLMAP {required}")
+
+    undistorted_root = scene_path / "undistorted_for_2dgs"
+    if undistorted_root.exists():
+        shutil.rmtree(undistorted_root)
+    undistort_command = [
+        colmap,
+        "image_undistorter",
+        "--image_path",
+        str(images_dir),
+        "--input_path",
+        str(sparse0),
+        "--output_path",
+        str(undistorted_root),
+        "--output_type",
+        "COLMAP",
+    ]
+    commands.append(_run_command(undistort_command, timeout_seconds=timeout_seconds))
+
+    undistorted_images = _require_dir(undistorted_root / "images", "Undistorted COLMAP images")
+    undistorted_sparse = _find_sparse_model_dir(undistorted_root)
+    _replace_tree(undistorted_images, images_dir)
+    _replace_tree(undistorted_sparse, sparse0)
 
     from colmap_alignment import align_colmap_sparse_model
 
