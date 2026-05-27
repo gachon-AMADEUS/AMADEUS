@@ -152,6 +152,23 @@ python pipeline.py \
   --skip-reconstruction
 ```
 
+## COLMAP reconstruction이 실패할 때
+
+발 표면은 텍스처가 약하고 segmentation 이미지의 배경이 지워져 COLMAP이 불안정할 수 있습니다. 먼저 기존 중간 결과를 지우거나 `--overwrite-frames`를 붙여 프레임을 다시 뽑은 뒤 재시도합니다.
+
+```bash
+python pipeline.py \
+  --input-video input/foot_capture.mp4 \
+  --skip-docker-build \
+  --overwrite-frames \
+  --colmap-matcher exhaustive \
+  --reconstruction-image-set both \
+  --min-interval 2 \
+  --sim-threshold 0.96
+```
+
+그래도 실패하면 영상 자체를 다시 촬영하는 편이 빠릅니다. 발과 체커보드가 선명하게 보이도록 천천히 360도 돌고, 프레임 간 겹침이 많게 촬영하세요.
+
 ## Slicer 설정
 
 기본 slicer engine은 `orca`입니다.
@@ -213,4 +230,3 @@ python pipeline.py
 - 웹 UI
 - YOLO 데이터셋 라벨링/학습 자동화
 - SAM 모델 학습
-

@@ -76,6 +76,38 @@ def _run_command(
     return result
 
 
+def _command_help(colmap: str, command_name: str) -> str:
+    try:
+        completed = subprocess.run(
+            [colmap, command_name, "-h"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except Exception:
+        return ""
+    return f"{completed.stdout}\n{completed.stderr}"
+
+
+def _add_if_supported(
+    command: list[str],
+    help_text: str,
+    option: str,
+    value: str | int | float,
+) -> None:
+    if not help_text or option in help_text:
+        command.extend([option, str(value)])
+
+
+def _is_global_ba_image_count_failure(exc: Exception) -> bool:
+    message = str(exc)
+    return (
+        "ba_config.NumImages() >= 2" in message
+        or "At least two images must be registered for global bundle-adjustment" in message
+    )
+
+
 def explain_local_gpu_blockers(docker_bin: str = "docker") -> list[str]:
     blockers: list[str] = []
     if shutil.which(docker_bin) is None:
@@ -182,6 +214,9 @@ def run_colmap_sfm(
     ]
     if single_camera:
         feature_command.extend(["--ImageReader.single_camera", "1"])
+    feature_help = _command_help(colmap, "feature_extractor")
+    _add_if_supported(feature_command, feature_help, "--SiftExtraction.estimate_affine_shape", 1)
+    _add_if_supported(feature_command, feature_help, "--SiftExtraction.domain_size_pooling", 1)
     commands.append(_run_command(feature_command, timeout_seconds=timeout_seconds))
 
     matcher_command = [
@@ -190,23 +225,48 @@ def run_colmap_sfm(
         "--database_path",
         str(database_path),
     ]
+    matcher_help = _command_help(colmap, matcher_command[1])
+    if matcher == "sequential":
+        _add_if_supported(matcher_command, matcher_help, "--SequentialMatching.overlap", 15)
+    _add_if_supported(matcher_command, matcher_help, "--SiftMatching.guided_matching", 1)
     commands.append(_run_command(matcher_command, timeout_seconds=timeout_seconds))
 
-    commands.append(
-        _run_command(
-            [
-                colmap,
-                "mapper",
-                "--database_path",
-                str(database_path),
-                "--image_path",
-                str(images_dir),
-                "--output_path",
-                str(sparse_dir),
-            ],
-            timeout_seconds=timeout_seconds,
-        )
-    )
+    mapper_help = _command_help(colmap, "mapper")
+    mapper_command = [
+        colmap,
+        "mapper",
+        "--database_path",
+        str(database_path),
+        "--image_path",
+        str(images_dir),
+        "--output_path",
+        str(sparse_dir),
+    ]
+    _add_if_supported(mapper_command, mapper_help, "--Mapper.tri_ignore_two_view_tracks", 0)
+    _add_if_supported(mapper_command, mapper_help, "--Mapper.min_num_matches", 8)
+    _add_if_supported(mapper_command, mapper_help, "--Mapper.abs_pose_min_num_inliers", 15)
+    _add_if_supported(mapper_command, mapper_help, "--Mapper.init_min_num_inliers", 50)
+
+    try:
+        commands.append(_run_command(mapper_command, timeout_seconds=timeout_seconds))
+    except RuntimeError as exc:
+        if not _is_global_ba_image_count_failure(exc):
+            raise
+        if sparse_dir.exists():
+            shutil.rmtree(sparse_dir)
+        sparse_dir.mkdir(parents=True, exist_ok=True)
+
+        retry_command = list(mapper_command)
+        _add_if_supported(retry_command, mapper_help, "--Mapper.ba_global_max_refinements", 0)
+        _add_if_supported(retry_command, mapper_help, "--Mapper.ba_global_images_freq", 1000000)
+        _add_if_supported(retry_command, mapper_help, "--Mapper.ba_global_frames_freq", 1000000)
+        _add_if_supported(retry_command, mapper_help, "--Mapper.ba_global_points_freq", 100000000)
+        _add_if_supported(retry_command, mapper_help, "--Mapper.ba_global_images_ratio", 100.0)
+        _add_if_supported(retry_command, mapper_help, "--Mapper.ba_global_frames_ratio", 100.0)
+        _add_if_supported(retry_command, mapper_help, "--Mapper.ba_global_points_ratio", 100.0)
+        retry_result = _run_command(retry_command, timeout_seconds=timeout_seconds)
+        retry_result["retry_reason"] = "COLMAP global bundle-adjustment image-count failure"
+        commands.append(retry_result)
 
     sparse0 = scene_path / "sparse" / "0"
     for required in ("cameras.bin", "images.bin", "points3D.bin"):

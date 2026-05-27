@@ -186,11 +186,18 @@ def run_pipeline(
     target_triangles: int | None = None,
     scene_name: str = "foot_scene",
     reconstruction_image_set: str = "foot",
+    colmap_matcher: str = "sequential",
     docker_image: str = "2dgs:cu118",
     dockerfile_path: str | Path | None = DEFAULT_DOCKERFILE,
     colmap_bin: str = "colmap",
     docker_bin: str = "docker",
     device: str | None = None,
+    motion_threshold: float = 12,
+    min_interval: int = 3,
+    blur_threshold: float | None = 200,
+    sim_threshold: float | None = 0.92,
+    mask_expand_pixels: int = 4,
+    overwrite_frames: bool = False,
     timeout_seconds: int = 3600,
     reconstruction_timeout_seconds: int = 14400,
 ) -> dict[str, Any]:
@@ -235,11 +242,18 @@ def run_pipeline(
             reconstruction_output_root=OUTPUT_DIR / "2dgs_output",
             scene_name=scene_name,
             colmap_bin=colmap_bin,
+            colmap_matcher=colmap_matcher,
             docker_bin=docker_bin,
             docker_image=docker_image,
             dockerfile_path=_as_path(dockerfile_path),
             build_2dgs_image=build_2dgs_image,
             train_2dgs_args="--depth_ratio 0",
+            motion_threshold=motion_threshold,
+            min_interval=min_interval,
+            blur_threshold=blur_threshold,
+            sim_threshold=sim_threshold,
+            mask_expand_pixels=mask_expand_pixels,
+            overwrite_frames=overwrite_frames,
             reconstruction_timeout_seconds=reconstruction_timeout_seconds,
             timeout_seconds=timeout_seconds,
         )
@@ -363,11 +377,18 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--target-triangles", type=int, default=None)
     parser.add_argument("--scene-name", default="foot_scene")
     parser.add_argument("--reconstruction-image-set", choices=["foot", "checkerboard", "both"], default="foot")
+    parser.add_argument("--colmap-matcher", choices=["sequential", "exhaustive"], default="sequential")
     parser.add_argument("--docker-image", default="2dgs:cu118")
     parser.add_argument("--2dgs-dockerfile", default=str(DEFAULT_DOCKERFILE))
     parser.add_argument("--colmap-bin", default="colmap")
     parser.add_argument("--docker-bin", default="docker")
     parser.add_argument("--device", default=None, help="YOLO/SAM device: cuda, cpu, or mps.")
+    parser.add_argument("--motion-threshold", type=float, default=12)
+    parser.add_argument("--min-interval", type=int, default=3)
+    parser.add_argument("--blur-threshold", type=float, default=200)
+    parser.add_argument("--sim-threshold", type=float, default=0.92)
+    parser.add_argument("--mask-expand-pixels", type=int, default=4)
+    parser.add_argument("--overwrite-frames", action="store_true")
     parser.add_argument("--timeout-seconds", type=int, default=3600)
     parser.add_argument("--reconstruction-timeout-seconds", type=int, default=14400)
     return parser.parse_args()
@@ -392,11 +413,18 @@ def main() -> int:
             target_triangles=args.target_triangles,
             scene_name=args.scene_name,
             reconstruction_image_set=args.reconstruction_image_set,
+            colmap_matcher=args.colmap_matcher,
             docker_image=args.docker_image,
             dockerfile_path=args.__dict__["2dgs_dockerfile"],
             colmap_bin=args.colmap_bin,
             docker_bin=args.docker_bin,
             device=args.device,
+            motion_threshold=args.motion_threshold,
+            min_interval=args.min_interval,
+            blur_threshold=args.blur_threshold,
+            sim_threshold=args.sim_threshold,
+            mask_expand_pixels=args.mask_expand_pixels,
+            overwrite_frames=args.overwrite_frames,
             timeout_seconds=args.timeout_seconds,
             reconstruction_timeout_seconds=args.reconstruction_timeout_seconds,
         )
