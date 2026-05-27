@@ -2,159 +2,21 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Analyze STL",
+      "name": "Run Full Video To 3MF Pipeline",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/analyze_stl.py",
-      "args": ["input/test.stl"],
+      "program": "${workspaceFolder}/pipeline.py",
+      "args": [],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "justMyCode": true
     },
     {
-      "name": "Repair STL",
+      "name": "Run Pipeline Without Slicing",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/repair_stl.py",
-      "args": ["input/test.stl"],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
-    {
-      "name": "Process STL",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/process_stl.py",
-      "args": ["input/test.stl"],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
-    {
-      "name": "Process Scaled STL from PLY",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/process_scaled_stl.py",
-      "args": [
-        "input/test.stl",
-        "--scale-ply",
-        "input/foot_for_scale_2.ply"
-      ],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
-    {
-      "name": "Process Scaled STL from PLY (No Slice)",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/process_scaled_stl.py",
-      "args": [
-        "input/test.stl",
-        "--scale-ply",
-        "input/foot_for_scale_2.ply",
-        "--no-slice"
-      ],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
-    {
-      "name": "Process Video With Notion Team Code",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/process_video_pipeline.py",
-      "args": [
-        "input/foot_capture.mp4",
-        "--use-notion-team-code",
-        "--assets-dir",
-        "assets",
-        "--reconstruction-ply",
-        "input/unbounded_default_post.ply",
-        "--scale-ply",
-        "input/foot_for_scale_2.ply"
-      ],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
-    {
-      "name": "Process Video With COLMAP + 2DGS Docker",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/process_video_pipeline.py",
-      "args": [
-        "input/foot_capture.mp4",
-        "--use-notion-team-code",
-        "--run-reconstruction",
-        "--assets-dir",
-        "assets",
-        "--scale-ply",
-        "input/foot_for_scale_2.ply",
-        "--scene-name",
-        "foot_scene",
-        "--reconstruction-image-set",
-        "foot",
-        "--2dgs-dockerfile",
-        "docker/2dgs/Dockerfile"
-      ],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
-    {
-      "name": "Process Video Pipeline Demo (Existing STL/PLY)",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/process_video_pipeline.py",
-      "args": [
-        "input/demo_video.mp4",
-        "--use-existing-assets",
-        "--fallback-stl",
-        "output/test_processed.stl",
-        "--fallback-ply",
-        "input/foot_for_scale_2.ply"
-      ],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
-    {
-      "name": "Process STL Only (No Slice)",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/process_stl.py",
-      "args": ["input/test.stl", "--no-slice"],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
-    {
-      "name": "Slice Processed STL",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/slicer.py",
-      "args": [
-        "output/test_processed.stl",
-        "--output",
-        "output/test_sliced.3mf"
-      ],
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
-    {
-      "name": "Slice Processed STL Dry Run",
-      "type": "python",
-      "request": "launch",
-      "program": "${workspaceFolder}/slicer.py",
-      "args": [
-        "output/test_processed.stl",
-        "--output",
-        "output/test_sliced.3mf",
-        "--dry-run"
-      ],
+      "program": "${workspaceFolder}/pipeline.py",
+      "args": ["--no-slice"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "justMyCode": true

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
 import subprocess
 import zipfile
 from pathlib import Path
@@ -18,12 +20,38 @@ DEFAULT_MACHINE_NAME = "Bambu Lab X1 Carbon 0.4 nozzle"
 DEFAULT_PROCESS_NAME = "0.20mm Standard @BBL X1C"
 DEFAULT_FILAMENT_NAME = "Bambu PLA Basic @BBL X1C"
 
-# Bambu Studio keeps system/user profile JSON files under these folders.
+APPDATA = Path(os.environ["APPDATA"]) if os.environ.get("APPDATA") else None
+LOCALAPPDATA = Path(os.environ["LOCALAPPDATA"]) if os.environ.get("LOCALAPPDATA") else None
+PROGRAM_FILES = Path(os.environ["PROGRAMFILES"]) if os.environ.get("PROGRAMFILES") else Path("C:/Program Files")
+
+# Bambu Studio and OrcaSlicer keep system/user profile JSON files under these folders.
 # Add another folder here if you export or store custom profile JSONs elsewhere.
 BAMBU_PROFILE_ROOTS = [
     Path.home() / "Library/Application Support/BambuStudio/system/BBL",
     Path.home() / "Library/Application Support/BambuStudio/user/default",
+    Path.home() / "AppData/Roaming/BambuStudio/system/BBL",
+    Path.home() / "AppData/Roaming/BambuStudio/user/default",
+    Path.home() / "AppData/Roaming/OrcaSlicer/system/BBL",
+    Path.home() / "AppData/Roaming/OrcaSlicer/user/default",
 ]
+if APPDATA:
+    BAMBU_PROFILE_ROOTS.extend(
+        [
+            APPDATA / "BambuStudio/system/BBL",
+            APPDATA / "BambuStudio/user/default",
+            APPDATA / "OrcaSlicer/system/BBL",
+            APPDATA / "OrcaSlicer/user/default",
+        ]
+    )
+if LOCALAPPDATA:
+    BAMBU_PROFILE_ROOTS.extend(
+        [
+            LOCALAPPDATA / "BambuStudio/system/BBL",
+            LOCALAPPDATA / "BambuStudio/user/default",
+            LOCALAPPDATA / "OrcaSlicer/system/BBL",
+            LOCALAPPDATA / "OrcaSlicer/user/default",
+        ]
+    )
 
 # Default slicer executable locations on this Mac.
 # If Bambu Studio or OrcaSlicer is installed somewhere else, either add that
@@ -31,6 +59,10 @@ BAMBU_PROFILE_ROOTS = [
 BAMBU_BIN_CANDIDATES = [
     Path("/Applications/BambuStudio.app/Contents/MacOS/BambuStudio"),
     Path.home() / "Desktop/BambuStudio.app/Contents/MacOS/BambuStudio",
+    PROGRAM_FILES / "Bambu Studio/bambu-studio.exe",
+    PROGRAM_FILES / "Bambu Studio/BambuStudio.exe",
+    PROGRAM_FILES / "BambuStudio/bambu-studio.exe",
+    PROGRAM_FILES / "BambuStudio/BambuStudio.exe",
 ]
 
 ORCA_BIN_CANDIDATES = [
@@ -42,6 +74,10 @@ ORCA_BIN_CANDIDATES = [
     Path("/Applications/OrcaSlicer.app/Contents/MacOS/OrcaSlicer"),
     Path("/Volumes/OrcaSlicer/OrcaSlicer.app/Contents/MacOS/OrcaSlicer"),
     Path.home() / "Desktop/OrcaSlicer.app/Contents/MacOS/OrcaSlicer",
+    PROGRAM_FILES / "OrcaSlicer/orca-slicer.exe",
+    PROGRAM_FILES / "OrcaSlicer/OrcaSlicer.exe",
+    PROGRAM_FILES / "Orca Slicer/orca-slicer.exe",
+    PROGRAM_FILES / "Orca Slicer/OrcaSlicer.exe",
 ]
 
 
@@ -71,7 +107,18 @@ def _first_existing(paths: list[Path]) -> Path | None:
     return None
 
 
+def _first_on_path(names: list[str]) -> Path | None:
+    for name in names:
+        resolved = shutil.which(name)
+        if resolved:
+            return Path(resolved)
+    return None
+
+
 def find_bambu_studio_bin() -> Path:
+    found_on_path = _first_on_path(["bambu-studio", "BambuStudio", "BambuStudio.exe", "bambu-studio.exe"])
+    if found_on_path:
+        return found_on_path
     found = _first_existing(BAMBU_BIN_CANDIDATES)
     if found:
         return found
@@ -81,6 +128,9 @@ def find_bambu_studio_bin() -> Path:
 
 
 def find_orca_slicer_bin() -> Path:
+    found_on_path = _first_on_path(["orca-slicer", "OrcaSlicer", "OrcaSlicer.exe", "orca-slicer.exe"])
+    if found_on_path:
+        return found_on_path
     found = _first_existing(ORCA_BIN_CANDIDATES)
     if found:
         return found

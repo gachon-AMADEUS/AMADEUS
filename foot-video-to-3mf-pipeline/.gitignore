@@ -7,6 +7,14 @@ __pycache__/
 assets/*.pt
 assets/*.pth
 
+# Local videos and large reconstruction files. Keep small committed samples only.
+input/*.mp4
+input/*.mov
+input/*.avi
+input/*.mkv
+input/*.m4v
+input/unbounded_default_post.ply
+
 # Runtime outputs
 output/*.stl
 output/*.3mf
@@ -22,4 +30,3 @@ output/cli_safe_profiles/
 output/cli_safe_profiles_orca_flat_all/
 output/cli_safe_profiles_orca_old/
 output/cli_safe_profiles_original_names/
-
