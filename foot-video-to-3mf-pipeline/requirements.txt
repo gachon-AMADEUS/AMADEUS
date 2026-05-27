@@ -1,0 +1,8 @@
+numpy
+trimesh
+open3d
+pymeshlab
+pymeshfix
+opencv-python-headless
+Pillow
+mapbox-earcut

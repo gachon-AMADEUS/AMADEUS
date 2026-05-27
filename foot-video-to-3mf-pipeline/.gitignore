@@ -1,0 +1,25 @@
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+
+# Large local model/checkpoint files. Put them here locally before running.
+assets/*.pt
+assets/*.pth
+
+# Runtime outputs
+output/*.stl
+output/*.3mf
+output/*.gcode
+output/*.json
+output/scale_debug/
+output/video_segmentation/
+reports/*.json
+reports/*.txt
+
+# Keep generated profile folders out unless intentionally committed.
+output/cli_safe_profiles/
+output/cli_safe_profiles_orca_flat_all/
+output/cli_safe_profiles_orca_old/
+output/cli_safe_profiles_original_names/
+
