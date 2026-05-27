@@ -187,6 +187,7 @@ def run_pipeline(
     scene_name: str = "foot_scene",
     reconstruction_image_set: str = "foot",
     colmap_matcher: str = "sequential",
+    colmap_vocab_tree_path: str | Path | None = None,
     docker_image: str = "2dgs:cu118",
     dockerfile_path: str | Path | None = DEFAULT_DOCKERFILE,
     colmap_bin: str = "colmap",
@@ -243,6 +244,7 @@ def run_pipeline(
             scene_name=scene_name,
             colmap_bin=colmap_bin,
             colmap_matcher=colmap_matcher,
+            colmap_vocab_tree_path=_as_path(colmap_vocab_tree_path) if colmap_vocab_tree_path else None,
             docker_bin=docker_bin,
             docker_image=docker_image,
             dockerfile_path=_as_path(dockerfile_path),
@@ -378,6 +380,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--scene-name", default="foot_scene")
     parser.add_argument("--reconstruction-image-set", choices=["foot", "checkerboard", "both"], default="foot")
     parser.add_argument("--colmap-matcher", choices=["sequential", "exhaustive"], default="sequential")
+    parser.add_argument("--colmap-vocab-tree-path", default=None)
     parser.add_argument("--docker-image", default="2dgs:cu118")
     parser.add_argument("--2dgs-dockerfile", default=str(DEFAULT_DOCKERFILE))
     parser.add_argument("--colmap-bin", default="colmap")
@@ -414,6 +417,7 @@ def main() -> int:
             scene_name=args.scene_name,
             reconstruction_image_set=args.reconstruction_image_set,
             colmap_matcher=args.colmap_matcher,
+            colmap_vocab_tree_path=args.colmap_vocab_tree_path,
             docker_image=args.docker_image,
             dockerfile_path=args.__dict__["2dgs_dockerfile"],
             colmap_bin=args.colmap_bin,

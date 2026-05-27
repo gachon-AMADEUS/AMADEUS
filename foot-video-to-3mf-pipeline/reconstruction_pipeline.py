@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -11,6 +12,7 @@ from typing import Any
 
 DEFAULT_2DGS_IMAGE = "2dgs:cu118"
 DEFAULT_SCENE_NAME = "foot_scene"
+DEFAULT_VOCAB_TREE_NAME = "vocab_tree_flickr100K_words32K.bin"
 
 
 def _as_path(path: str | Path) -> Path:
@@ -76,6 +78,13 @@ def _run_command(
     return result
 
 
+def _colmap_command(colmap: str, command_name: str) -> list[str]:
+    xvfb_run = shutil.which("xvfb-run")
+    if xvfb_run:
+        return [xvfb_run, "-a", colmap, command_name]
+    return [colmap, command_name]
+
+
 def _command_help(colmap: str, command_name: str) -> str:
     try:
         completed = subprocess.run(
@@ -120,6 +129,36 @@ def _find_sparse_model_dir(root: Path) -> Path:
         if all((candidate / name).exists() for name in ("cameras.bin", "images.bin", "points3D.bin")):
             return candidate
     raise FileNotFoundError(f"Undistorted COLMAP sparse model not found under: {root}")
+
+
+def _resolve_vocab_tree_path(
+    explicit_path: str | Path | None,
+    scene_path: Path,
+) -> Path | None:
+    if explicit_path:
+        path = _require_file(explicit_path, "COLMAP vocab tree")
+        return path.resolve()
+
+    env_path = os.environ.get("COLMAP_VOCAB_TREE_PATH")
+    candidates = []
+    if env_path:
+        candidates.append(Path(env_path).expanduser())
+
+    pipeline_root = Path(__file__).resolve().parent
+    candidates.extend(
+        [
+            pipeline_root / "assets" / DEFAULT_VOCAB_TREE_NAME,
+            pipeline_root / DEFAULT_VOCAB_TREE_NAME,
+            scene_path / DEFAULT_VOCAB_TREE_NAME,
+            scene_path.parent / DEFAULT_VOCAB_TREE_NAME,
+            Path("/app/src") / DEFAULT_VOCAB_TREE_NAME,
+        ]
+    )
+
+    for candidate in candidates:
+        if candidate.exists() and candidate.is_file():
+            return candidate.resolve()
+    return None
 
 
 def explain_local_gpu_blockers(docker_bin: str = "docker") -> list[str]:
@@ -197,6 +236,8 @@ def run_colmap_sfm(
     matcher: str = "sequential",
     camera_model: str = "SIMPLE_RADIAL",
     single_camera: bool = True,
+    use_gpu: bool = True,
+    vocab_tree_path: str | Path | None = None,
     clean_existing: bool = True,
     timeout_seconds: int = 7200,
 ) -> dict[str, Any]:
@@ -217,8 +258,7 @@ def run_colmap_sfm(
 
     commands = []
     feature_command = [
-        colmap,
-        "feature_extractor",
+        *_colmap_command(colmap, "feature_extractor"),
         "--database_path",
         str(database_path),
         "--image_path",
@@ -229,26 +269,38 @@ def run_colmap_sfm(
     if single_camera:
         feature_command.extend(["--ImageReader.single_camera", "1"])
     feature_help = _command_help(colmap, "feature_extractor")
+    if use_gpu:
+        _add_if_supported(feature_command, feature_help, "--SiftExtraction.use_gpu", 1)
     _add_if_supported(feature_command, feature_help, "--SiftExtraction.estimate_affine_shape", 1)
     _add_if_supported(feature_command, feature_help, "--SiftExtraction.domain_size_pooling", 1)
     commands.append(_run_command(feature_command, timeout_seconds=timeout_seconds))
 
+    resolved_vocab_tree = _resolve_vocab_tree_path(vocab_tree_path, scene_path)
+    matcher_command_name = "sequential_matcher" if matcher == "sequential" else "exhaustive_matcher"
     matcher_command = [
-        colmap,
-        "sequential_matcher" if matcher == "sequential" else "exhaustive_matcher",
+        *_colmap_command(colmap, matcher_command_name),
         "--database_path",
         str(database_path),
     ]
-    matcher_help = _command_help(colmap, matcher_command[1])
+    matcher_help = _command_help(colmap, matcher_command_name)
+    if use_gpu:
+        _add_if_supported(matcher_command, matcher_help, "--SiftMatching.use_gpu", 1)
     if matcher == "sequential":
-        _add_if_supported(matcher_command, matcher_help, "--SequentialMatching.overlap", 15)
+        _add_if_supported(matcher_command, matcher_help, "--SequentialMatching.overlap", 20)
+        if resolved_vocab_tree is not None:
+            _add_if_supported(matcher_command, matcher_help, "--SequentialMatching.loop_detection", 1)
+            _add_if_supported(
+                matcher_command,
+                matcher_help,
+                "--SequentialMatching.vocab_tree_path",
+                str(resolved_vocab_tree),
+            )
     _add_if_supported(matcher_command, matcher_help, "--SiftMatching.guided_matching", 1)
     commands.append(_run_command(matcher_command, timeout_seconds=timeout_seconds))
 
     mapper_help = _command_help(colmap, "mapper")
     mapper_command = [
-        colmap,
-        "mapper",
+        *_colmap_command(colmap, "mapper"),
         "--database_path",
         str(database_path),
         "--image_path",
@@ -290,8 +342,7 @@ def run_colmap_sfm(
     if undistorted_root.exists():
         shutil.rmtree(undistorted_root)
     undistort_command = [
-        colmap,
-        "image_undistorter",
+        *_colmap_command(colmap, "image_undistorter"),
         "--image_path",
         str(images_dir),
         "--input_path",
@@ -322,6 +373,9 @@ def run_colmap_sfm(
         "database_path": str(database_path),
         "sparse0": str(sparse0),
         "matcher": matcher,
+        "camera_model": camera_model,
+        "use_gpu": bool(use_gpu),
+        "vocab_tree_path": str(resolved_vocab_tree) if resolved_vocab_tree else None,
         "alignment": alignment_report,
         "commands": commands,
     }
@@ -411,6 +465,7 @@ def run_reconstruction_from_segmented_images(
     build_image: bool = False,
     skip_colmap: bool = False,
     matcher: str = "sequential",
+    vocab_tree_path: str | Path | None = None,
     train_args: str = "--depth_ratio 0",
     timeout_seconds: int = 14400,
 ) -> dict[str, Any]:
@@ -449,6 +504,7 @@ def run_reconstruction_from_segmented_images(
             dataset_report["scene_dir"],
             colmap_bin=colmap_bin,
             matcher=matcher,
+            vocab_tree_path=vocab_tree_path,
             timeout_seconds=timeout_seconds,
         )
     else:

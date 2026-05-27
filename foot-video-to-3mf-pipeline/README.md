@@ -161,10 +161,18 @@ python pipeline.py \
   --input-video input/foot_capture.mp4 \
   --skip-docker-build \
   --overwrite-frames \
-  --colmap-matcher exhaustive \
   --reconstruction-image-set both \
   --min-interval 2 \
   --sim-threshold 0.96
+```
+
+`assets/vocab_tree_flickr100K_words32K.bin` 파일이 있으면 sequential matcher에서 loop detection을 자동으로 사용합니다. 다른 위치에 있다면 직접 넘깁니다.
+
+```bash
+python pipeline.py \
+  --input-video input/foot_capture.mp4 \
+  --skip-docker-build \
+  --colmap-vocab-tree-path assets/vocab_tree_flickr100K_words32K.bin
 ```
 
 그래도 실패하면 영상 자체를 다시 촬영하는 편이 빠릅니다. 발과 체커보드가 선명하게 보이도록 천천히 360도 돌고, 프레임 간 겹침이 많게 촬영하세요.
