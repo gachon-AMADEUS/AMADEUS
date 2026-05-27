@@ -2,7 +2,7 @@
 
 촬영된 발 영상을 입력하면 segmentation, COLMAP/2DGS reconstruction, 실제 크기 scaling, STL repair/simplify, slicing을 거쳐 Bambu/OrcaSlicer용 `.3mf`를 생성하는 파이프라인입니다.
 
-팀원이 실행해야 하는 파일은 하나입니다.
+실행해야 하는 파일은 하나입니다.
 
 ```bash
 python pipeline.py
