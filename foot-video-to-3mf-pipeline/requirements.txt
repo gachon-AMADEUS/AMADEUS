@@ -6,3 +6,4 @@ pymeshfix
 opencv-python-headless
 Pillow
 mapbox-earcut
+scipy

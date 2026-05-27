@@ -272,11 +272,21 @@ def run_colmap_sfm(
     for required in ("cameras.bin", "images.bin", "points3D.bin"):
         _require_file(sparse0 / required, f"COLMAP {required}")
 
+    from colmap_alignment import align_colmap_sparse_model
+
+    alignment_report = align_colmap_sparse_model(
+        sparse0,
+        restore_existing_backup=False,
+        create_backup=True,
+        clip_z_threshold=0.0,
+    )
+
     return {
         "scene_dir": str(scene_path),
         "database_path": str(database_path),
         "sparse0": str(sparse0),
         "matcher": matcher,
+        "alignment": alignment_report,
         "commands": commands,
     }
 
