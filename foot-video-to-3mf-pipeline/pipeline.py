@@ -192,6 +192,9 @@ def run_pipeline(
     dockerfile_path: str | Path | None = DEFAULT_DOCKERFILE,
     colmap_bin: str = "colmap",
     docker_bin: str = "docker",
+    two_dgs_mesh_res_list: str = "768 512 384",
+    two_dgs_mesh_depth_ratio: str = "0",
+    two_dgs_mesh_num_cluster: int = 30,
     device: str | None = None,
     motion_threshold: float = 12,
     min_interval: int = 3,
@@ -250,6 +253,9 @@ def run_pipeline(
             dockerfile_path=_as_path(dockerfile_path),
             build_2dgs_image=build_2dgs_image,
             train_2dgs_args="--depth_ratio 0",
+            two_dgs_mesh_res_list=two_dgs_mesh_res_list,
+            two_dgs_mesh_depth_ratio=two_dgs_mesh_depth_ratio,
+            two_dgs_mesh_num_cluster=two_dgs_mesh_num_cluster,
             motion_threshold=motion_threshold,
             min_interval=min_interval,
             blur_threshold=blur_threshold,
@@ -385,6 +391,25 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--2dgs-dockerfile", default=str(DEFAULT_DOCKERFILE))
     parser.add_argument("--colmap-bin", default="colmap")
     parser.add_argument("--docker-bin", default="docker")
+    parser.add_argument(
+        "--two-dgs-mesh-res-list",
+        default="768 512 384",
+        help=(
+            "Space-separated mesh extraction resolutions tried in order. "
+            "Lower values use less GPU memory. Example: \"512 384 256\"."
+        ),
+    )
+    parser.add_argument(
+        "--two-dgs-mesh-depth-ratio",
+        default="0",
+        help="2DGS render.py --depth_ratio value used only for mesh extraction.",
+    )
+    parser.add_argument(
+        "--two-dgs-mesh-num-cluster",
+        type=int,
+        default=30,
+        help="2DGS render.py --num_cluster value used only for mesh extraction.",
+    )
     parser.add_argument("--device", default=None, help="YOLO/SAM device: cuda, cpu, or mps.")
     parser.add_argument("--motion-threshold", type=float, default=12)
     parser.add_argument("--min-interval", type=int, default=3)
@@ -422,6 +447,9 @@ def main() -> int:
             dockerfile_path=args.__dict__["2dgs_dockerfile"],
             colmap_bin=args.colmap_bin,
             docker_bin=args.docker_bin,
+            two_dgs_mesh_res_list=args.two_dgs_mesh_res_list,
+            two_dgs_mesh_depth_ratio=args.two_dgs_mesh_depth_ratio,
+            two_dgs_mesh_num_cluster=args.two_dgs_mesh_num_cluster,
             device=args.device,
             motion_threshold=args.motion_threshold,
             min_interval=args.min_interval,

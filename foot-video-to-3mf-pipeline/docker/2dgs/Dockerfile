@@ -5,6 +5,7 @@ ENV PATH="/usr/local/cuda/bin:/opt/conda/bin:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
 ENV CUDA_HOME="/usr/local/cuda"
 ENV TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
+ENV PYTORCH_CUDA_ALLOC_CONF="max_split_size_mb:128"
 
 RUN apt-get update && apt-get install -y \
     bash \
@@ -120,20 +121,51 @@ cd /app/2d-gaussian-splatting
 MODEL_PATH="/app/output/${SCENE}"
 SAVE_ROOT="${MODEL_PATH}/mesh_quick"
 mkdir -p "${SAVE_ROOT}"
+rm -f "${SAVE_ROOT}/unbounded_default.ply" "${SAVE_ROOT}/unbounded_default_post.ply" "${SAVE_ROOT}/used_mesh_settings.txt"
 
-python render.py \
-  -s /app/dataset/${SCENE} \
-  -m ${MODEL_PATH} \
-  --skip_train \
-  --skip_test \
-  --unbounded \
-  --mesh_res 1024 \
-  --depth_ratio 0 \
-  --num_cluster 30
+MESH_RES_LIST="${TWO_DGS_MESH_RES_LIST:-768 512 384}"
+DEPTH_RATIO="${TWO_DGS_DEPTH_RATIO:-0}"
+NUM_CLUSTER="${TWO_DGS_NUM_CLUSTER:-30}"
 
-LATEST_DIR=$(find "${MODEL_PATH}/train" -maxdepth 1 -type d -name 'ours_*' | sort | tail -n 1)
-[ -f "${LATEST_DIR}/fuse_unbounded.ply" ] && cp "${LATEST_DIR}/fuse_unbounded.ply" "${SAVE_ROOT}/unbounded_default.ply" || true
-[ -f "${LATEST_DIR}/fuse_unbounded_post.ply" ] && cp "${LATEST_DIR}/fuse_unbounded_post.ply" "${SAVE_ROOT}/unbounded_default_post.ply" || true
+echo "[INFO] mesh extraction candidates: ${MESH_RES_LIST}"
+echo "[INFO] depth_ratio=${DEPTH_RATIO}, num_cluster=${NUM_CLUSTER}"
+
+SUCCESS=0
+for MESH_RES in ${MESH_RES_LIST}; do
+  echo "[RUN] unbounded mesh extraction mesh_res=${MESH_RES}"
+  if python render.py \
+    -s /app/dataset/${SCENE} \
+    -m ${MODEL_PATH} \
+    --skip_train \
+    --skip_test \
+    --unbounded \
+    --mesh_res "${MESH_RES}" \
+    --depth_ratio "${DEPTH_RATIO}" \
+    --num_cluster "${NUM_CLUSTER}"; then
+
+    LATEST_DIR=$(find "${MODEL_PATH}/train" -maxdepth 1 -type d -name 'ours_*' | sort | tail -n 1)
+    [ -f "${LATEST_DIR}/fuse_unbounded.ply" ] && cp "${LATEST_DIR}/fuse_unbounded.ply" "${SAVE_ROOT}/unbounded_default.ply" || true
+    if [ -f "${LATEST_DIR}/fuse_unbounded_post.ply" ]; then
+      cp "${LATEST_DIR}/fuse_unbounded_post.ply" "${SAVE_ROOT}/unbounded_default_post.ply"
+    elif [ -f "${LATEST_DIR}/fuse_unbounded.ply" ]; then
+      cp "${LATEST_DIR}/fuse_unbounded.ply" "${SAVE_ROOT}/unbounded_default_post.ply"
+    fi
+
+    if [ -f "${SAVE_ROOT}/unbounded_default_post.ply" ]; then
+      echo "mesh_res=${MESH_RES}" > "${SAVE_ROOT}/used_mesh_settings.txt"
+      echo "depth_ratio=${DEPTH_RATIO}" >> "${SAVE_ROOT}/used_mesh_settings.txt"
+      echo "num_cluster=${NUM_CLUSTER}" >> "${SAVE_ROOT}/used_mesh_settings.txt"
+      SUCCESS=1
+      break
+    fi
+  fi
+  echo "[WARN] mesh_res=${MESH_RES} failed, trying next candidate..."
+done
+
+if [ "${SUCCESS}" -ne 1 ]; then
+  echo "[ERROR] all mesh extraction candidates failed: ${MESH_RES_LIST}"
+  exit 1
+fi
 
 echo "[DONE] quick mesh extraction saved under ${SAVE_ROOT}"
 EOF

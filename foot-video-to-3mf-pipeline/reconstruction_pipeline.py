@@ -411,6 +411,9 @@ def run_2dgs_docker(
     docker_bin: str = "docker",
     train_args: str = "--depth_ratio 0",
     extract_command: str = "extract_mesh_quick.sh",
+    mesh_res_list: str = "768 512 384",
+    mesh_depth_ratio: str = "0",
+    mesh_num_cluster: int = 30,
     timeout_seconds: int = 14400,
 ) -> dict[str, Any]:
     """Run the Notion 2DGS Docker train + quick mesh extraction stage."""
@@ -434,6 +437,14 @@ def run_2dgs_docker(
         f"{dataset_root_path.resolve()}:/app/dataset",
         "-v",
         f"{output_root_path.resolve()}:/app/output",
+        "-e",
+        "PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128",
+        "-e",
+        f"TWO_DGS_MESH_RES_LIST={mesh_res_list}",
+        "-e",
+        f"TWO_DGS_DEPTH_RATIO={mesh_depth_ratio}",
+        "-e",
+        f"TWO_DGS_NUM_CLUSTER={mesh_num_cluster}",
         image_name,
         "bash",
         "-lc",
@@ -448,6 +459,9 @@ def run_2dgs_docker(
         "dataset_root": str(dataset_root_path),
         "output_root": str(output_root_path),
         "reconstruction_ply": str(output_ply),
+        "mesh_res_list": mesh_res_list,
+        "mesh_depth_ratio": mesh_depth_ratio,
+        "mesh_num_cluster": mesh_num_cluster,
         "command": command,
         "run": run_result,
     }
@@ -467,6 +481,9 @@ def run_reconstruction_from_segmented_images(
     matcher: str = "sequential",
     vocab_tree_path: str | Path | None = None,
     train_args: str = "--depth_ratio 0",
+    mesh_res_list: str = "768 512 384",
+    mesh_depth_ratio: str = "0",
+    mesh_num_cluster: int = 30,
     timeout_seconds: int = 14400,
 ) -> dict[str, Any]:
     """Segmented images -> COLMAP sparse dataset -> 2DGS mesh PLY."""
@@ -520,6 +537,9 @@ def run_reconstruction_from_segmented_images(
         image_name=docker_image,
         docker_bin=docker_bin,
         train_args=train_args,
+        mesh_res_list=mesh_res_list,
+        mesh_depth_ratio=mesh_depth_ratio,
+        mesh_num_cluster=mesh_num_cluster,
         timeout_seconds=timeout_seconds,
     )
     report["reconstruction_ply"] = report["two_dgs"]["reconstruction_ply"]

@@ -116,6 +116,12 @@ docker build -t 2dgs:cu118 docker/2dgs
 python pipeline.py --skip-docker-build
 ```
 
+Dockerfile이 수정된 뒤에는 기존 image가 예전 설정을 계속 쓸 수 있습니다. OOM 수정사항을 받으려면 한 번은 다시 빌드하세요.
+
+```bash
+docker build -t 2dgs:cu118 docker/2dgs
+```
+
 ## 실행
 
 가장 단순한 실행:
@@ -176,6 +182,30 @@ python pipeline.py \
 ```
 
 그래도 실패하면 영상 자체를 다시 촬영하는 편이 빠릅니다. 발과 체커보드가 선명하게 보이도록 천천히 360도 돌고, 프레임 간 겹침이 많게 촬영하세요.
+
+## 2DGS CUDA out of memory가 날 때
+
+2DGS의 mesh extraction은 GPU 메모리를 많이 씁니다. 기본값은 `768 -> 512 -> 384` 순서로 자동 재시도합니다.
+
+12GB GPU에서 계속 OOM이 나면 먼저 다른 GPU 작업을 종료하고, 더 낮은 해상도 후보로 실행하세요.
+
+```bash
+python pipeline.py \
+  --input-video input/foot_capture.mp4 \
+  --skip-docker-build \
+  --two-dgs-mesh-res-list "512 384 256"
+```
+
+그래도 실패하면 더 낮춥니다.
+
+```bash
+python pipeline.py \
+  --input-video input/foot_capture.mp4 \
+  --skip-docker-build \
+  --two-dgs-mesh-res-list "384 256"
+```
+
+해상도를 낮추면 메모리 사용량은 줄지만, 추출되는 PLY/STL 표면 디테일도 줄어듭니다. 어떤 값으로 성공했는지는 `output/2dgs_output/<scene_name>/mesh_quick/used_mesh_settings.txt`에 저장됩니다.
 
 ## Slicer 설정
 
