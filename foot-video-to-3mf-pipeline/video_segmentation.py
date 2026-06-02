@@ -187,6 +187,8 @@ def _run_notion_team_pipeline(
     two_dgs_mesh_res_list: str,
     two_dgs_mesh_depth_ratio: str,
     two_dgs_mesh_num_cluster: int,
+    two_dgs_wait_gpu_min_free_mb: int,
+    two_dgs_wait_gpu_timeout_sec: int,
     reconstruction_timeout_seconds: int,
     motion_threshold: float,
     min_interval: int,
@@ -194,6 +196,7 @@ def _run_notion_team_pipeline(
     sim_threshold: float | None,
     mask_expand_pixels: int,
     overwrite_frames: bool,
+    max_reconstruction_frames: int | None,
     postprocess_z_min: float,
     postprocess_z_max: float,
     postprocess_z_tol: float,
@@ -224,6 +227,7 @@ def _run_notion_team_pipeline(
         sim_threshold=sim_threshold,
         mask_expand_pixels=mask_expand_pixels,
         overwrite_frames=overwrite_frames,
+        max_reconstruction_frames=max_reconstruction_frames,
     )
 
     if reconstruction_ply is not None:
@@ -266,6 +270,8 @@ def _run_notion_team_pipeline(
             mesh_res_list=two_dgs_mesh_res_list,
             mesh_depth_ratio=two_dgs_mesh_depth_ratio,
             mesh_num_cluster=two_dgs_mesh_num_cluster,
+            wait_gpu_min_free_mb=two_dgs_wait_gpu_min_free_mb,
+            wait_gpu_timeout_sec=two_dgs_wait_gpu_timeout_sec,
             timeout_seconds=reconstruction_timeout_seconds,
         )
         reconstruction_file = _require_file(
@@ -314,6 +320,8 @@ def _run_notion_team_pipeline(
             mesh_res_list=two_dgs_mesh_res_list,
             mesh_depth_ratio=two_dgs_mesh_depth_ratio,
             mesh_num_cluster=two_dgs_mesh_num_cluster,
+            wait_gpu_min_free_mb=two_dgs_wait_gpu_min_free_mb,
+            wait_gpu_timeout_sec=two_dgs_wait_gpu_timeout_sec,
             timeout_seconds=reconstruction_timeout_seconds,
         )
         checker_file = _require_file(
@@ -453,9 +461,11 @@ def prepare_assets_from_video(
     dockerfile_path: str | Path | None = None,
     build_2dgs_image: bool = False,
     train_2dgs_args: str = "--depth_ratio 0",
-    two_dgs_mesh_res_list: str = "768 512 384",
+    two_dgs_mesh_res_list: str = "512 384 256 192",
     two_dgs_mesh_depth_ratio: str = "0",
     two_dgs_mesh_num_cluster: int = 30,
+    two_dgs_wait_gpu_min_free_mb: int = 2048,
+    two_dgs_wait_gpu_timeout_sec: int = 600,
     reconstruction_timeout_seconds: int = 14400,
     motion_threshold: float = 12,
     min_interval: int = 3,
@@ -463,6 +473,7 @@ def prepare_assets_from_video(
     sim_threshold: float | None = 0.92,
     mask_expand_pixels: int = 4,
     overwrite_frames: bool = False,
+    max_reconstruction_frames: int | None = 120,
     postprocess_z_min: float = 0.0,
     postprocess_z_max: float = 0.8,
     postprocess_z_tol: float = 1e-3,
@@ -513,6 +524,8 @@ def prepare_assets_from_video(
             two_dgs_mesh_res_list=two_dgs_mesh_res_list,
             two_dgs_mesh_depth_ratio=two_dgs_mesh_depth_ratio,
             two_dgs_mesh_num_cluster=two_dgs_mesh_num_cluster,
+            two_dgs_wait_gpu_min_free_mb=two_dgs_wait_gpu_min_free_mb,
+            two_dgs_wait_gpu_timeout_sec=two_dgs_wait_gpu_timeout_sec,
             reconstruction_timeout_seconds=reconstruction_timeout_seconds,
             motion_threshold=motion_threshold,
             min_interval=min_interval,
@@ -520,6 +533,7 @@ def prepare_assets_from_video(
             sim_threshold=sim_threshold,
             mask_expand_pixels=mask_expand_pixels,
             overwrite_frames=overwrite_frames,
+            max_reconstruction_frames=max_reconstruction_frames,
             postprocess_z_min=postprocess_z_min,
             postprocess_z_max=postprocess_z_max,
             postprocess_z_tol=postprocess_z_tol,

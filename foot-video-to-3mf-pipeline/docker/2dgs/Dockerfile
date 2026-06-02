@@ -5,7 +5,7 @@ ENV PATH="/usr/local/cuda/bin:/opt/conda/bin:${PATH}"
 ENV LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
 ENV CUDA_HOME="/usr/local/cuda"
 ENV TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;8.9"
-ENV PYTORCH_CUDA_ALLOC_CONF="max_split_size_mb:128"
+ENV PYTORCH_CUDA_ALLOC_CONF="max_split_size_mb:64"
 
 RUN apt-get update && apt-get install -y \
     bash \
@@ -123,16 +123,50 @@ SAVE_ROOT="${MODEL_PATH}/mesh_quick"
 mkdir -p "${SAVE_ROOT}"
 rm -f "${SAVE_ROOT}/unbounded_default.ply" "${SAVE_ROOT}/unbounded_default_post.ply" "${SAVE_ROOT}/used_mesh_settings.txt"
 
-MESH_RES_LIST="${TWO_DGS_MESH_RES_LIST:-768 512 384}"
+MESH_RES_LIST="${TWO_DGS_MESH_RES_LIST:-512 384 256 192}"
 DEPTH_RATIO="${TWO_DGS_DEPTH_RATIO:-0}"
 NUM_CLUSTER="${TWO_DGS_NUM_CLUSTER:-30}"
+WAIT_GPU_MIN_FREE_MB="${TWO_DGS_WAIT_GPU_MIN_FREE_MB:-2048}"
+WAIT_GPU_TIMEOUT_SEC="${TWO_DGS_WAIT_GPU_TIMEOUT_SEC:-600}"
+
+wait_for_gpu_memory() {
+  if ! command -v nvidia-smi >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local start_time
+  start_time=$(date +%s)
+  while true; do
+    local free_mb
+    free_mb=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits 2>/dev/null | head -n 1 | tr -dc '0-9' || true)
+    if [ -z "${free_mb}" ] || [ "${free_mb}" -ge "${WAIT_GPU_MIN_FREE_MB}" ]; then
+      echo "[INFO] GPU free memory: ${free_mb:-unknown} MiB"
+      return 0
+    fi
+
+    local now elapsed
+    now=$(date +%s)
+    elapsed=$((now - start_time))
+    if [ "${elapsed}" -ge "${WAIT_GPU_TIMEOUT_SEC}" ]; then
+      echo "[WARN] GPU free memory is still low (${free_mb} MiB < ${WAIT_GPU_MIN_FREE_MB} MiB) after ${elapsed}s."
+      echo "[WARN] Continuing anyway; close other GPU jobs or lower TWO_DGS_MESH_RES_LIST if OOM continues."
+      return 0
+    fi
+
+    echo "[WAIT] GPU free memory ${free_mb} MiB < ${WAIT_GPU_MIN_FREE_MB} MiB. Waiting 10s..."
+    sleep 10
+  done
+}
 
 echo "[INFO] mesh extraction candidates: ${MESH_RES_LIST}"
 echo "[INFO] depth_ratio=${DEPTH_RATIO}, num_cluster=${NUM_CLUSTER}"
+echo "[INFO] waiting for at least ${WAIT_GPU_MIN_FREE_MB} MiB free GPU memory before each mesh attempt"
+nvidia-smi || true
 
 SUCCESS=0
 for MESH_RES in ${MESH_RES_LIST}; do
   echo "[RUN] unbounded mesh extraction mesh_res=${MESH_RES}"
+  wait_for_gpu_memory
   if python render.py \
     -s /app/dataset/${SCENE} \
     -m ${MODEL_PATH} \

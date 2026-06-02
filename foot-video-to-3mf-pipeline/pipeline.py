@@ -192,9 +192,11 @@ def run_pipeline(
     dockerfile_path: str | Path | None = DEFAULT_DOCKERFILE,
     colmap_bin: str = "colmap",
     docker_bin: str = "docker",
-    two_dgs_mesh_res_list: str = "768 512 384",
+    two_dgs_mesh_res_list: str = "512 384 256 192",
     two_dgs_mesh_depth_ratio: str = "0",
     two_dgs_mesh_num_cluster: int = 30,
+    two_dgs_wait_gpu_min_free_mb: int = 2048,
+    two_dgs_wait_gpu_timeout_sec: int = 600,
     device: str | None = None,
     motion_threshold: float = 12,
     min_interval: int = 3,
@@ -202,6 +204,7 @@ def run_pipeline(
     sim_threshold: float | None = 0.92,
     mask_expand_pixels: int = 4,
     overwrite_frames: bool = False,
+    max_reconstruction_frames: int | None = 120,
     timeout_seconds: int = 3600,
     reconstruction_timeout_seconds: int = 14400,
 ) -> dict[str, Any]:
@@ -256,12 +259,15 @@ def run_pipeline(
             two_dgs_mesh_res_list=two_dgs_mesh_res_list,
             two_dgs_mesh_depth_ratio=two_dgs_mesh_depth_ratio,
             two_dgs_mesh_num_cluster=two_dgs_mesh_num_cluster,
+            two_dgs_wait_gpu_min_free_mb=two_dgs_wait_gpu_min_free_mb,
+            two_dgs_wait_gpu_timeout_sec=two_dgs_wait_gpu_timeout_sec,
             motion_threshold=motion_threshold,
             min_interval=min_interval,
             blur_threshold=blur_threshold,
             sim_threshold=sim_threshold,
             mask_expand_pixels=mask_expand_pixels,
             overwrite_frames=overwrite_frames,
+            max_reconstruction_frames=max_reconstruction_frames,
             reconstruction_timeout_seconds=reconstruction_timeout_seconds,
             timeout_seconds=timeout_seconds,
         )
@@ -393,10 +399,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--docker-bin", default="docker")
     parser.add_argument(
         "--two-dgs-mesh-res-list",
-        default="768 512 384",
+        default="512 384 256 192",
         help=(
             "Space-separated mesh extraction resolutions tried in order. "
-            "Lower values use less GPU memory. Example: \"512 384 256\"."
+            "Lower values use less GPU memory. Example: \"384 256 192\"."
         ),
     )
     parser.add_argument(
@@ -410,6 +416,18 @@ def _parse_args() -> argparse.Namespace:
         default=30,
         help="2DGS render.py --num_cluster value used only for mesh extraction.",
     )
+    parser.add_argument(
+        "--two-dgs-wait-gpu-min-free-mb",
+        type=int,
+        default=2048,
+        help="Wait before 2DGS mesh extraction until at least this much GPU memory is free.",
+    )
+    parser.add_argument(
+        "--two-dgs-wait-gpu-timeout-sec",
+        type=int,
+        default=600,
+        help="Maximum seconds to wait for GPU memory before trying mesh extraction anyway.",
+    )
     parser.add_argument("--device", default=None, help="YOLO/SAM device: cuda, cpu, or mps.")
     parser.add_argument("--motion-threshold", type=float, default=12)
     parser.add_argument("--min-interval", type=int, default=3)
@@ -417,6 +435,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--sim-threshold", type=float, default=0.92)
     parser.add_argument("--mask-expand-pixels", type=int, default=4)
     parser.add_argument("--overwrite-frames", action="store_true")
+    parser.add_argument(
+        "--max-reconstruction-frames",
+        type=int,
+        default=120,
+        help="Maximum selected frames passed to COLMAP/2DGS. Lower values reduce GPU memory and runtime.",
+    )
     parser.add_argument("--timeout-seconds", type=int, default=3600)
     parser.add_argument("--reconstruction-timeout-seconds", type=int, default=14400)
     return parser.parse_args()
@@ -450,6 +474,8 @@ def main() -> int:
             two_dgs_mesh_res_list=args.two_dgs_mesh_res_list,
             two_dgs_mesh_depth_ratio=args.two_dgs_mesh_depth_ratio,
             two_dgs_mesh_num_cluster=args.two_dgs_mesh_num_cluster,
+            two_dgs_wait_gpu_min_free_mb=args.two_dgs_wait_gpu_min_free_mb,
+            two_dgs_wait_gpu_timeout_sec=args.two_dgs_wait_gpu_timeout_sec,
             device=args.device,
             motion_threshold=args.motion_threshold,
             min_interval=args.min_interval,
@@ -457,6 +483,7 @@ def main() -> int:
             sim_threshold=args.sim_threshold,
             mask_expand_pixels=args.mask_expand_pixels,
             overwrite_frames=args.overwrite_frames,
+            max_reconstruction_frames=args.max_reconstruction_frames,
             timeout_seconds=args.timeout_seconds,
             reconstruction_timeout_seconds=args.reconstruction_timeout_seconds,
         )

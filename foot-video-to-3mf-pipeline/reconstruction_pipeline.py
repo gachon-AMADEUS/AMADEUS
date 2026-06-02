@@ -411,9 +411,11 @@ def run_2dgs_docker(
     docker_bin: str = "docker",
     train_args: str = "--depth_ratio 0",
     extract_command: str = "extract_mesh_quick.sh",
-    mesh_res_list: str = "768 512 384",
+    mesh_res_list: str = "512 384 256 192",
     mesh_depth_ratio: str = "0",
     mesh_num_cluster: int = 30,
+    wait_gpu_min_free_mb: int = 2048,
+    wait_gpu_timeout_sec: int = 600,
     timeout_seconds: int = 14400,
 ) -> dict[str, Any]:
     """Run the Notion 2DGS Docker train + quick mesh extraction stage."""
@@ -438,13 +440,17 @@ def run_2dgs_docker(
         "-v",
         f"{output_root_path.resolve()}:/app/output",
         "-e",
-        "PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128",
+        "PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:64",
         "-e",
         f"TWO_DGS_MESH_RES_LIST={mesh_res_list}",
         "-e",
         f"TWO_DGS_DEPTH_RATIO={mesh_depth_ratio}",
         "-e",
         f"TWO_DGS_NUM_CLUSTER={mesh_num_cluster}",
+        "-e",
+        f"TWO_DGS_WAIT_GPU_MIN_FREE_MB={wait_gpu_min_free_mb}",
+        "-e",
+        f"TWO_DGS_WAIT_GPU_TIMEOUT_SEC={wait_gpu_timeout_sec}",
         image_name,
         "bash",
         "-lc",
@@ -462,6 +468,8 @@ def run_2dgs_docker(
         "mesh_res_list": mesh_res_list,
         "mesh_depth_ratio": mesh_depth_ratio,
         "mesh_num_cluster": mesh_num_cluster,
+        "wait_gpu_min_free_mb": wait_gpu_min_free_mb,
+        "wait_gpu_timeout_sec": wait_gpu_timeout_sec,
         "command": command,
         "run": run_result,
     }
@@ -481,9 +489,11 @@ def run_reconstruction_from_segmented_images(
     matcher: str = "sequential",
     vocab_tree_path: str | Path | None = None,
     train_args: str = "--depth_ratio 0",
-    mesh_res_list: str = "768 512 384",
+    mesh_res_list: str = "512 384 256 192",
     mesh_depth_ratio: str = "0",
     mesh_num_cluster: int = 30,
+    wait_gpu_min_free_mb: int = 2048,
+    wait_gpu_timeout_sec: int = 600,
     timeout_seconds: int = 14400,
 ) -> dict[str, Any]:
     """Segmented images -> COLMAP sparse dataset -> 2DGS mesh PLY."""
@@ -540,6 +550,8 @@ def run_reconstruction_from_segmented_images(
         mesh_res_list=mesh_res_list,
         mesh_depth_ratio=mesh_depth_ratio,
         mesh_num_cluster=mesh_num_cluster,
+        wait_gpu_min_free_mb=wait_gpu_min_free_mb,
+        wait_gpu_timeout_sec=wait_gpu_timeout_sec,
         timeout_seconds=timeout_seconds,
     )
     report["reconstruction_ply"] = report["two_dgs"]["reconstruction_ply"]

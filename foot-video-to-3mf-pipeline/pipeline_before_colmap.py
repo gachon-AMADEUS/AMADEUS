@@ -2,11 +2,64 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 from pathlib import Path
 from typing import Any
 
 from frame_preprocessing import extract_frames_to
 import yolo_sam_process
+
+
+def _clear_image_files(image_dir: Path) -> None:
+    image_dir.mkdir(parents=True, exist_ok=True)
+    for pattern in ("*.jpg", "*.jpeg", "*.png"):
+        for image_file in image_dir.glob(pattern):
+            if image_file.is_file():
+                image_file.unlink()
+
+
+def _select_reconstruction_frames(
+    source_dir: Path,
+    selected_dir: Path,
+    max_frames: int | None,
+) -> dict[str, Any]:
+    image_files = sorted(source_dir.glob("*.jpg"))
+    if max_frames is None or max_frames <= 0 or len(image_files) <= max_frames:
+        return {
+            "source_dir": str(source_dir),
+            "selected_dir": str(source_dir),
+            "source_count": len(image_files),
+            "selected_count": len(image_files),
+            "max_frames": max_frames,
+            "limited": False,
+        }
+
+    _clear_image_files(selected_dir)
+    if max_frames == 1:
+        selected_indices = [len(image_files) // 2]
+    else:
+        selected_indices = sorted(
+            {
+                round(index * (len(image_files) - 1) / (max_frames - 1))
+                for index in range(max_frames)
+            }
+        )
+
+    copied = []
+    for output_index, source_index in enumerate(selected_indices):
+        source = image_files[source_index]
+        target = selected_dir / f"frame_{output_index:04d}{source.suffix.lower()}"
+        shutil.copy2(source, target)
+        copied.append(str(target))
+
+    return {
+        "source_dir": str(source_dir),
+        "selected_dir": str(selected_dir),
+        "source_count": len(image_files),
+        "selected_count": len(copied),
+        "max_frames": max_frames,
+        "limited": True,
+    }
 
 
 def run_video_pre_colmap(
@@ -22,6 +75,7 @@ def run_video_pre_colmap(
     sim_threshold: float | None = 0.92,
     mask_expand_pixels: int = 4,
     overwrite_frames: bool = False,
+    max_reconstruction_frames: int | None = 120,
 ) -> dict[str, Any]:
     """Video -> selected frames -> YOLO/SAM segmented image folders.
 
@@ -35,6 +89,7 @@ def run_video_pre_colmap(
 
     root = Path(output_root).expanduser() / vid_path.stem
     original_image_dir = root / "original_image"
+    selected_image_dir = root / "selected_image"
     segmentation_image_dir = root / "segmentation"
     asset_path = Path(assets_dir).expanduser()
 
@@ -68,15 +123,21 @@ def run_video_pre_colmap(
             "skipped_extract": True,
         }
 
+    frame_selection = _select_reconstruction_frames(
+        original_image_dir,
+        selected_image_dir,
+        max_reconstruction_frames,
+    )
+    segmentation_input_dir = Path(frame_selection["selected_dir"])
+
     foot_dir = segmentation_image_dir / "foot"
     checkerboard_dir = segmentation_image_dir / "checkerboard"
     both_dir = segmentation_image_dir / "both"
-    os.makedirs(foot_dir, exist_ok=True)
-    os.makedirs(checkerboard_dir, exist_ok=True)
-    os.makedirs(both_dir, exist_ok=True)
+    for generated_dir in (foot_dir, checkerboard_dir, both_dir):
+        _clear_image_files(generated_dir)
 
     foot_result = yolo_sam_process.run_segmentation(
-        original_image_dir,
+        segmentation_input_dir,
         foot_dir,
         "foot",
         yolo_model,
@@ -85,7 +146,7 @@ def run_video_pre_colmap(
         mask_expand_pixels=mask_expand_pixels,
     )
     checkerboard_result = yolo_sam_process.run_segmentation(
-        original_image_dir,
+        segmentation_input_dir,
         checkerboard_dir,
         "checkerboard",
         yolo_model,
@@ -94,7 +155,7 @@ def run_video_pre_colmap(
         mask_expand_pixels=mask_expand_pixels,
     )
     both_result = yolo_sam_process.run_segmentation(
-        original_image_dir,
+        segmentation_input_dir,
         both_dir,
         "both",
         yolo_model,
@@ -107,11 +168,13 @@ def run_video_pre_colmap(
         "video_path": str(vid_path),
         "root": str(root),
         "original_image_dir": str(original_image_dir),
+        "selected_image_dir": str(segmentation_input_dir),
         "segmentation_dir": str(segmentation_image_dir),
         "foot_images_dir": str(foot_dir),
         "checkerboard_images_dir": str(checkerboard_dir),
         "both_images_dir": str(both_dir),
         "frame_extraction": extraction_result,
+        "frame_selection": frame_selection,
         "foot_segmentation": foot_result,
         "checkerboard_segmentation": checkerboard_result,
         "both_segmentation": both_result,
@@ -132,6 +195,7 @@ def do_pipeline() -> dict[str, Any]:
     parser.add_argument("--assets-dir", default="assets")
     parser.add_argument("--device", default=None)
     parser.add_argument("--overwrite-frames", action="store_true")
+    parser.add_argument("--max-reconstruction-frames", type=int, default=120)
     args = parser.parse_args()
 
     return run_video_pre_colmap(
@@ -140,6 +204,7 @@ def do_pipeline() -> dict[str, Any]:
         assets_dir=args.assets_dir,
         device=args.device,
         overwrite_frames=args.overwrite_frames,
+        max_reconstruction_frames=args.max_reconstruction_frames,
     )
 
 

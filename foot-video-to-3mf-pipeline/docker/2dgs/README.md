@@ -15,8 +15,15 @@ The main Python pipeline runs the container with:
 docker run --gpus all --rm \
   -v <dataset_root>:/app/dataset \
   -v <output_root>:/app/output \
+  -e TWO_DGS_MESH_RES_LIST="512 384 256 192" \
   2dgs:cu118 \
   bash -lc "export SCENE=foot_scene && train_2dgs.sh --depth_ratio 0 && extract_mesh_quick.sh"
+```
+
+For low-memory GPUs, use lower mesh extraction candidates:
+
+```bash
+python pipeline.py --two-dgs-mesh-res-list "256 192 128" --max-reconstruction-frames 60
 ```
 
 Expected dataset layout:

@@ -131,6 +131,7 @@ python pipeline.py
 ```
 
 이 명령은 `input/` 폴더에서 가장 최근 영상 파일을 자동으로 찾습니다.
+COLMAP/2DGS에는 기본적으로 최대 120장의 선별 프레임만 넘겨 GPU 메모리 사용량을 줄입니다.
 
 특정 영상을 지정하려면:
 
@@ -185,15 +186,31 @@ python pipeline.py \
 
 ## 2DGS CUDA out of memory가 날 때
 
-2DGS의 mesh extraction은 GPU 메모리를 많이 씁니다. 기본값은 `768 -> 512 -> 384` 순서로 자동 재시도합니다.
+2DGS의 mesh extraction은 GPU 메모리를 많이 씁니다. 기본값은 `512 -> 384 -> 256 -> 192` 순서로 자동 재시도합니다.
 
-12GB GPU에서 계속 OOM이 나면 먼저 다른 GPU 작업을 종료하고, 더 낮은 해상도 후보로 실행하세요.
+12GB GPU에서 계속 OOM이 나면 먼저 다른 GPU 작업을 종료하세요.
+
+Windows/WSL에서 확인:
+
+```bash
+nvidia-smi
+docker ps
+```
+
+이전 실행 컨테이너가 남아 있으면 중지합니다.
+
+```bash
+docker stop <container_id>
+```
+
+그 다음 더 낮은 메쉬 해상도와 더 적은 reconstruction 프레임으로 실행하세요.
 
 ```bash
 python pipeline.py \
   --input-video input/foot_capture.mp4 \
   --skip-docker-build \
-  --two-dgs-mesh-res-list "512 384 256"
+  --two-dgs-mesh-res-list "384 256 192" \
+  --max-reconstruction-frames 80
 ```
 
 그래도 실패하면 더 낮춥니다.
@@ -202,10 +219,17 @@ python pipeline.py \
 python pipeline.py \
   --input-video input/foot_capture.mp4 \
   --skip-docker-build \
-  --two-dgs-mesh-res-list "384 256"
+  --two-dgs-mesh-res-list "256 192 128" \
+  --max-reconstruction-frames 60
 ```
 
-해상도를 낮추면 메모리 사용량은 줄지만, 추출되는 PLY/STL 표면 디테일도 줄어듭니다. 어떤 값으로 성공했는지는 `output/2dgs_output/<scene_name>/mesh_quick/used_mesh_settings.txt`에 저장됩니다.
+해상도와 프레임 수를 낮추면 메모리 사용량은 줄지만, 추출되는 PLY/STL 표면 디테일도 줄어듭니다. 어떤 값으로 성공했는지는 `output/2dgs_output/<scene_name>/mesh_quick/used_mesh_settings.txt`에 저장됩니다.
+
+Dockerfile이 바뀐 뒤에는 반드시 image를 다시 빌드해야 새 OOM 설정이 반영됩니다.
+
+```bash
+docker build -t 2dgs:cu118 docker/2dgs
+```
 
 ## Slicer 설정
 
